@@ -26,7 +26,7 @@ const db_host = process.env.db_host;
 const db_user = process.env.db_user;
 const db_pass = process.env.db_pass;
 const db_name = process.env.db_name;
-
+console.log("dbconfig: " + [db_host, db_name, db_user].join(' | '));
 const wss = new WebSocket.Server({ port: 8082 });
 console.log("websocket Listening on http://127.0.0.1:8082");
 const app = express();
