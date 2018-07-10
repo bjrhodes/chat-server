@@ -16,8 +16,8 @@ app.use(function(req, res, next) {
     err.status = 404;
     next(err);
 });
-console.log("Listening on http://127.0.0.1:80");
-server.listen('80', '127.0.0.1');
+console.log("Listening on http://127.0.0.1:" + process.env.PORT);
+server.listen(process.env.PORT, '127.0.0.1');
 
 function shuffle (array) {
     var i = 0, j = 0, temp = null;
