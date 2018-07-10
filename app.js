@@ -31,7 +31,7 @@ const wss = new WebSocket.Server({ port: 8082 });
 console.log("websocket Listening on http://127.0.0.1:8082");
 const app = express();
 const server = http.createServer(app);
-const connection = mysql.createConnection({
+const dbConnection = mysql.createConnection({
     host     : db_host,
     user     : db_user,
     password : db_pass,
@@ -62,7 +62,7 @@ function validateMessage(data) {
 }
 
 function sendLatestMessages(ws) {
-    connection.query('SELECT * FROM `messages` LIMIT 10 ORDER BY id DESC', function (error, messages, fields) {
+    dbConnection.query('SELECT * FROM `messages` LIMIT 10 ORDER BY id DESC', function (error, messages, fields) {
         if (messages) {
             messages.forEach(function(message) {
                 ws.send(JSON.stringify(message));
@@ -97,7 +97,7 @@ wss.on('connection', function connection(ws) {
             color: color,
             message: input.message,
         };
-        connection.query('INSERT INTO messages SET ?', message, function () {
+        dbConnection.query('INSERT INTO messages SET ?', message, function () {
             broadcast(message);
         });
     });
