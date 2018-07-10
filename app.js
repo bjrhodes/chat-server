@@ -1,24 +1,3 @@
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 8082 });
-const http = require("http");
-const express = require("express");
-const app = express();
-
-const server = http.createServer(app);
-app.get('/', function(req, res) {
-    res.send("OK");
-});
-app.get('/favicon.ico', function(req, res) {
-    res.send("");
-});
-app.use(function(req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
-});
-console.log("Listening on http://127.0.0.1:" + process.env.PORT);
-server.listen(process.env.PORT, '127.0.0.1');
-
 function shuffle (array) {
     var i = 0, j = 0, temp = null;
 
@@ -30,13 +9,48 @@ function shuffle (array) {
     }
     return array;
 }
-var colors = shuffle(['#001f3f', '#0074D9', '#7FDBFF', '#39CCCC', '#3D9970', '#2ECC40', '#01FF70', '#FFDC00', '#FF851B', '#FF4136', '#85144b', '#F012BE', '#B10DC9', '#111111', '#AAAAAA', '#DDDDDD']);
-var colorIndex = 0;
 function getColor() {
     colorIndex++;
     colorIndex = colorIndex >= colors.length ? 0 : colorIndex;
     return colors[colorIndex];
 }
+
+const WebSocket = require('ws');
+const http = require("http");
+const express = require("express");
+const mysql = require("mysql");
+const colors = shuffle(['#001f3f', '#0074D9', '#7FDBFF', '#39CCCC', '#3D9970', '#2ECC40', '#01FF70', '#FFDC00', '#FF851B', '#FF4136', '#85144b', '#F012BE', '#B10DC9', '#111111', '#AAAAAA', '#DDDDDD']);
+var colorIndex = 0;
+
+const db_host = process.env.db_host;
+const db_user = process.env.db_user;
+const db_pass = process.env.db_pass;
+const db_name = process.env.db_name;
+
+const wss = new WebSocket.Server({ port: 8082 });
+console.log("websocket Listening on http://127.0.0.1:8082");
+const app = express();
+const server = http.createServer(app);
+const connection = mysql.createConnection({
+    host     : db_host,
+    user     : db_user,
+    password : db_pass,
+    database : db_name
+});
+
+app.get('/', function(req, res) {
+    res.send("OK");
+});
+app.get('/favicon.ico', function(req, res) {
+    res.send("");
+});
+app.use(function(req, res, next) {
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+});
+server.listen('8081', '127.0.0.1');
+console.log("HTTP Listening on http://127.0.0.1:8081");
 
 function validateMessage(data) {
     try {
@@ -47,24 +61,44 @@ function validateMessage(data) {
     return data.message && data.username;
 }
 
+function sendLatestMessages(ws) {
+    connection.query('SELECT * FROM `messages` LIMIT 10 ORDER BY id DESC', function (error, messages, fields) {
+        if (messages) {
+            messages.forEach(function(message) {
+                ws.send(JSON.stringify(message));
+            });
+        }
+      });
+}
+
+function broadcast(packet) {
+    wss.clients.forEach(function each(client) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(packet));
+        }
+    });
+}
 wss.on('connection', function connection(ws) {
     var username = null,
         color = getColor();
 
-    ws.on('message', function incoming(data) {
-        if (!validateMessage(data)) {
-            ws.send('{"error":"Invalid data"}');
+    sendLatestMessages(ws);
+
+    ws.on('message', function incoming(input) {
+        var input, message;
+        if (!validateMessage(input)) {
+            ws.send('{"error":"Invalid input"}');
             return;
         }
-        data = JSON.parse(data);
-        username = username ? username : data.username;
-        data.color = color;
-
-        // Broadcast to everyone else.
-        wss.clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
-            }
+        input = JSON.parse(input);
+        username = username ? username : input.username;
+        message  = {
+            username: username,
+            color: color,
+            message: input.message,
+        };
+        connection.query('INSERT INTO messages SET ?', message, function () {
+            broadcast(message);
         });
     });
 });
