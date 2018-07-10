@@ -97,7 +97,10 @@ wss.on('connection', function connection(ws) {
             color: color,
             message: input.message,
         };
-        dbConnection.query('INSERT INTO messages SET ?', message, function () {
+        dbConnection.query('INSERT INTO messages SET ?', message, function (err) {
+            if (err) {
+                console.log(err);
+            }
             broadcast(message);
         });
     });
