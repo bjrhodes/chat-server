@@ -31,12 +31,6 @@ const wss = new WebSocket.Server({ port: 8082 });
 console.log("websocket Listening on http://127.0.0.1:8082");
 const app = express();
 const server = http.createServer(app);
-const dbConnection = mysql.createConnection({
-    host     : db_host,
-    user     : db_user,
-    password : db_pass,
-    database : db_name
-});
 
 app.get('/', function(req, res) {
     res.send("OK");
@@ -60,15 +54,24 @@ function validateMessage(data) {
     }
     return data.message && data.username;
 }
-
+function dbConnect() {
+    return mysql.createConnection({
+        host     : db_host,
+        user     : db_user,
+        password : db_pass,
+        database : db_name
+    });
+}
 function sendLatestMessages(ws) {
+    dbConnection = dbConnect();
     dbConnection.query('SELECT * FROM `messages` LIMIT 10 ORDER BY id DESC', function (error, messages, fields) {
         if (messages) {
             messages.forEach(function(message) {
                 ws.send(JSON.stringify(message));
             });
         }
-      });
+    });
+    dbConnection.end()
 }
 
 function broadcast(packet) {
@@ -85,7 +88,9 @@ wss.on('connection', function connection(ws) {
     sendLatestMessages(ws);
 
     ws.on('message', function incoming(input) {
-        var input, message;
+        var input, message,
+            dbConnection = dbConnect();
+
         if (!validateMessage(input)) {
             ws.send('{"error":"Invalid input"}');
             return;
@@ -103,5 +108,6 @@ wss.on('connection', function connection(ws) {
             }
             broadcast(message);
         });
+        dbConnection.end();
     });
 });
