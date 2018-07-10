@@ -22,10 +22,10 @@ const mysql = require("mysql");
 const colors = shuffle(['#001f3f', '#0074D9', '#7FDBFF', '#39CCCC', '#3D9970', '#2ECC40', '#01FF70', '#FFDC00', '#FF851B', '#FF4136', '#85144b', '#F012BE', '#B10DC9', '#111111', '#AAAAAA', '#DDDDDD']);
 var colorIndex = 0;
 
-const db_host = process.env.db_host;
-const db_user = process.env.db_user;
-const db_pass = process.env.db_pass;
-const db_name = process.env.db_name;
+const db_host = process.env.DB_HOST;
+const db_user = process.env.DB_USER;
+const db_pass = process.env.DB_PASS;
+const db_name = process.env.DB_NAME;
 console.log("dbconfig: " + [db_host, db_name, db_user].join(' | '));
 const wss = new WebSocket.Server({ port: 8082 });
 console.log("websocket Listening on http://127.0.0.1:8082");
