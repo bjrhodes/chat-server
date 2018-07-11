@@ -16,6 +16,8 @@ function getColor() {
 }
 
 const WebSocket = require('ws');
+const http = require("http");
+const express = require("express");
 const mysql = require("mysql");
 const colors = shuffle(['#001f3f', '#0074D9', '#7FDBFF', '#39CCCC', '#3D9970', '#2ECC40', '#01FF70', '#FFDC00', '#FF851B', '#FF4136', '#85144b', '#F012BE', '#B10DC9', '#111111', '#AAAAAA', '#DDDDDD']);
 var colorIndex = 0;
@@ -27,6 +29,17 @@ const db_name = process.env.DB_NAME;
 console.log("dbconfig: " + [db_host, db_name, db_user].join(' | '));
 const wss = new WebSocket.Server({ port: 8082 });
 console.log("websocket Listening on http://127.0.0.1:8082");
+const app = express();
+const server = http.createServer(app);
+
+app.use(express.static(__dirname + '/docs'));
+app.use(function(req, res, next) {
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+});
+server.listen('8081', '127.0.0.1');
+console.log("HTTP Listening on http://127.0.0.1:8081");
 
 function validateMessage(data) {
     try {
